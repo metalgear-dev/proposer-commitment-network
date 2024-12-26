@@ -26,6 +26,8 @@ pub const GET_PAYLOAD_PATH: &str = "/eth/v1/builder/blinded_blocks";
 pub const CONSTRAINTS_PATH: &str = "/constraints/v1/builder/constraints";
 /// The path to the constraints API collect constraints endpoint.
 pub const CONSTRAINTS_COLLECT_PATH: &str = "/constraints/v1/builder/constraints_collect";
+/// The request timeout for getting header with proofs from builders.
+pub const HEADER_PROOF_REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 pub async fn run_constraints_collector(port: u16, cb_url:String) {
     let collector = Arc::new(ConstraintsCollector::new(cb_url.parse().expect("Valid URL")));
