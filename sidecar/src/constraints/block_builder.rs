@@ -47,6 +47,7 @@ use reth_rpc_layer::{secret_to_bearer_header, JwtSecret};
 use regex::Regex;
 
 use beacon_api_client::{presets::mainnet::Client as BeaconRPCClient, StateId, BlockId};
+use serde::Serialize;
 use serde_json::Value;
 use reqwest::{Client, Url};
 
@@ -69,6 +70,7 @@ pub struct BlockBuilder {
   fee_recipient: Address,
   engine_hinter: EngineHinter,
   slot_time_in_seconds: u64,
+  max_blinded_block_length: usize
 }
 
 impl BlockBuilder {
@@ -86,6 +88,7 @@ impl BlockBuilder {
         beacon_rpc_client: BeaconRPCClient::new(config.beacon_api_url.clone()),
         el_rpc_client: ExecutionRpcClient::new(config.execution_api_url.clone()),
         slot_time_in_seconds: config.chain.get_slot_time_in_seconds(),
+        max_blinded_block_length: config.max_blinded_block_length,
     }
 }
 
@@ -179,6 +182,14 @@ impl BlockBuilder {
             let block_hash = hints.block_hash.unwrap_or(sealed_block.hash());
 
             let exec_payload = create_alloy_execution_payload(&sealed_block, block_hash);
+
+            if sealed_block.size() > self.max_blinded_block_length {
+                return Err(BuilderError::Custom(format!(
+                    "Sealed block size {} exceeds max block size {}",
+                    sealed_block.size(),
+                    self.max_blinded_block_length
+                )));
+            }
 
             let engine_hint = self
                 .engine_hinter
