@@ -13,10 +13,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
   SignedConstraints,
-  STATUS_PATH, REGISTER_VALIDATORS_PATH, GET_HEADER_PATH, GET_PAYLOAD_PATH, CONSTRAINTS_PATH,
+  STATUS_PATH, REGISTER_VALIDATORS_PATH, GET_HEADER_PATH, GET_PAYLOAD_PATH, CONSTRAINTS_PATH, HEADER_PROOF_REQUEST_TIMEOUT,
   CollectorError,
   ErrorResponse
 };
+
+
 
 /// A thread-safe collector for storing constraints.
 #[derive(Clone, Debug)]
@@ -142,7 +144,9 @@ impl ConstraintsCollector {
           let parent_hash = format!("0x{}", hex::encode(params.parent_hash.as_ref()));
           let public_key = format!("0x{}", hex::encode(params.public_key.as_ref()));
   
-          let response = self
+          let response = tokio.time::timeout(
+            HEADER_PROOF_REQUEST_TIMEOUT,
+            self
               .cb_client
               .get(self.cb_url.join(&format!(
                   "/eth/v1/builder/header_with_proofs/{}/{}/{}",
@@ -151,6 +155,7 @@ impl ConstraintsCollector {
               .header("content-type", "application/json")
               .send()
               .await?;
+          ).await?;
   
           if response.status() != StatusCode::OK {
               let error = response.json::<ErrorResponse>().await?;
